@@ -1,5 +1,10 @@
 Red [ needs 'view ]
 
+;; interactively test parse rules
+;; by c.p.brown 2021
+;;
+;; attempt [] may freeze the script, uncomment if its a problem
+
 marg: 10
 tabh: 0 ;; height of the statusbar (none atm)
 
@@ -65,6 +70,7 @@ nudgev: func [] [
 ]
 
 view/tight/flags/options [
+	title "reexsa"
 	below
 	hh: panel 800x55 35.35.35 [
 		parsers: drop-list 200x30 font-name "consolas" font-size 10 font-color 180.180.180 bold data (collect [foreach file read %./ [ if (find (to-string file) ".parse") [keep rejoin ["./" (to-string file)]] ]]) on-change [
@@ -75,10 +81,11 @@ view/tight/flags/options [
 			pset: load to-file parsers/data/(parsers/selected)
 			maap/text: (reduce pset/1)
 			mbbp/text: (reduce pset/2)
+			maap/font/color: 255.0.0 s: copy mbbp/text attempt [ do maap/text mccp/text: s maap/font/color: 128.255.128 ]
 		]
 		pad 10x0
 		parsername: field 200x30 font-name "consolas" font-size 10 font-color 180.180.180 bold
-		pnew: button 80x30 "save" font-name "consolas" font-size 10 font-color 180.180.180 bold [ 
+		pnew: button 80x34 "save" font-name "consolas" font-size 10 font-color 180.180.180 bold [ 
 			if (parsername/text <> "") and (parsername/text <> none) [
 			   	newparsername: rejoin [ "./" parsername/text ".parse" ]
 			    write to-file newparsername ( reduce [ maap/text mbbp/text ])
@@ -88,7 +95,14 @@ view/tight/flags/options [
 			]
 		]
 		pad 10x0
-		psave: button 160x30 "save output" font-name "consolas" font-size 10 font-color 180.180.180 bold [ op: request-dir unless none? op [ probe op write to-file rejoin [ op "parsed_text.txt" ] mccp/text ] ]
+		psave: button 160x34 "save output" font-name "consolas" font-size 10 font-color 180.180.180 bold [
+			if (parsername/text <> "") and (parsername/text <> none) [
+				op: request-dir
+				unless none? op [ 
+		    		write to-file rejoin [ op parsername "_output.txt" ] mccp/text 
+				]
+			]
+		]
 	]
 	tp: panel 800x745 [
 		below
@@ -98,7 +112,7 @@ view/tight/flags/options [
 			]
 			maap: area 800x300 40.40.40 font-name "consolas" font-size 12 font-color 128.255.128 bold with [
 				text: {parse s [ any [ to "^^/* " change "^^/* " "^^/<li>" pre: [ to "^^/" change "^^/" "</li>^^/" | to end change end "</li>" end ] :pre ] ]^/parse s [ any [ to "^^/<li>" not "</li>^^/<li>" change "^^/<li>" "<ul>^^/<li>" ] ]}
-			] on-change [ face/font/color: 255.0.0 s: copy mbbp/text do maap/text mccp/text: s face/font/color: 128.255.128 ] 
+			] on-change [ face/font/color: 255.0.0 s: copy mbbp/text attempt [ do maap/text mccp/text: s face/font/color: 128.255.128 ] ] 
 		]
 		uu: panel 800x10 30.30.30 loose [] on-drag [ nudgeu ]
 		across
@@ -108,7 +122,7 @@ view/tight/flags/options [
 			]
 			mbbp: area 390x300 40.40.40 font-name "consolas" font-size 12 font-color 128.255.255 bold with [
 				text: {a list:^/* one^/* two^/* three^/end of * list^/another list^/* AAA^/* BBB^/end of the other list} ;;*/ <- emacs red-mode is screwy atm
-			] on-change [ face/font/color: 255.0.0 s: copy mbbp/text do maap/text mccp/text: s face/font/color: 128.255.128 ] 
+			] on-change [ face/font/color: 255.0.0 s: copy mbbp/text attempt [ do maap/text mccp/text: s face/font/color: 128.255.128 ] ] 
 		]
 		vv: panel 10x390 30.30.30 loose [] on-drag [ nudgev ]
 		mcc: panel 390x400 40.40.40 [
@@ -125,11 +139,12 @@ view/tight/flags/options [
 			mbbp/text: (reduce pset/2)
 			parsername/text: "default"
 			parsers/selected: index? find parsers/data "./default.parse"
+			maap/font/color: 255.0.0 s: copy mbbp/text attempt [ do maap/text mccp/text: s maap/font/color: 128.255.128 ]
 		]
-		pnew/offset/x: tp/size/x - (pnew/size/x + marg)
-		psave/offset/x: pnew/offset/x - (psave/size/x + marg)
+		psave/offset/x: tp/size/x - (psave/size/x + marg)
+	    pnew/offset/x: psave/offset/x - (pnew/size/x + marg)
 		parsername/offset/x: (parsers/offset/x + parsers/size/x + marg)
-		parsername/size/x: psave/offset/x - (parsers/size/x + (4 * marg)) 
+		parsername/size/x: pnew/offset/x - (parsers/size/x + (4 * marg)) 
 		nudgeu nudgev 
 	]
 ] [ resize ] [
@@ -139,10 +154,10 @@ view/tight/flags/options [
 				if face/size/y > (uu/offset/y + 200) [
 					hh/size/x: face/size/x
 					tp/size: face/size - 0x55
-					pnew/offset/x: face/size/x - (pnew/size/x + marg)
-					psave/offset/x: pnew/offset/x - (psave/size/x + marg)
+					psave/offset/x: face/size/x - (psave/size/x + marg)
+					pnew/offset/x: psave/offset/x - (pnew/size/x + marg)
 					parsername/offset/x: (parsers/offset/x + parsers/size/x + marg)
-					parsername/size/x: psave/offset/x - (parsers/size/x + (4 * marg))
+					parsername/size/x: pnew/offset/x - (parsers/size/x + (4 * marg))
 					nudgeu nudgev
 				]
 			]
